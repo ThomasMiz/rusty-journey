@@ -99,18 +99,33 @@ fn main() {
 
     // Rust doesn't have null, but we can represent the concept of "value is invalid or not present" using the
     // Option<T> enum, which has variants None and Some(T):
-    let maybeString: Option<String> = Option::None;
-    println!("maybeString: {maybeString:?}");
-    // maybeString: None
+    let maybe_string: Option<String> = Option::None;
+    println!("maybe_string: {maybe_string:?}");
+    // maybe_string: None
 
     // Note: Option<T> and its variants are included in the prelude, you may skip the "Option::" part:
-    let maybeString = Some(String::from("value"));
-    println!("maybeString: {maybeString:?}");
-    // maybeString: Some("value")
+    let maybe_string = Some(String::from("value"));
+    println!("maybe_string: {maybe_string:?}");
+    // maybe_string: Some("value")
 
-    match maybeString {
-        Some(s) => println!("maybeString contains a string! {s}"),
-        None => println!("maybeString doesn't contain a string."),
+    match maybe_string {
+        Some(s) => println!("maybe_string contains a string! {s}"),
+        None => println!("maybe_string doesn't contain a string."),
     }
-    // maybeString contains a string! value
+    // maybe_string contains a string! value
+
+
+    let maybe_string = Some(String::from("value"));
+    // This:
+    match maybe_string {
+        Some(ref s) => println!("The string is {s}"),
+        _ => ()
+    }
+    // is the same as this:
+    if let Some(ref s) = maybe_string {
+        println!("The string is {s}");
+    }
+    // NOTE: The "ref"s are because otherwise maybe_string is `moved` in the match's first arm. With the ref,
+    // we ensure the arm borrows the value instead of getting ownership of it. We could have alternatively
+    // matched &maybe_string instead.
 }
