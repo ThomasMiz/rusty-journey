@@ -13,17 +13,28 @@ const PRINT_USAGE: &str = "Print <department>";
 const PRINTALL_USAGE: &str = "Printall";
 const EXIT_USAGE: &str = "Exit";
 
-enum ErrorType {
-    UnknownCommand(String),
-    BadUsage(&'static str),
-    DepartmentNotFound(String),
-    EmployeeNotFound(String, String),
+enum ErrorType<'a> {
+    UnknownCommand(&'a str),
+    BadUsage(&'a str),
+    DepartmentNotFound(&'a str),
+    EmployeeNotFound(&'a str, &'a str),
 }
 
-fn handle_add(
-    map: &mut HashMap<String, Vec<String>>,
-    split: &mut SplitWhitespace<'_>,
-) -> Result<(), ErrorType> {
+fn ensure_split_finished<'a>(
+    split: &'a mut SplitWhitespace<'_>,
+    message: &'a str,
+) -> Result<(), ErrorType<'a>> {
+    if !split.next().is_none() {
+        return Err(ErrorType::BadUsage(message));
+    }
+
+    return Ok(());
+}
+
+fn handle_add<'a>(
+    map: &'a mut HashMap<String, Vec<String>>,
+    split: &'a mut SplitWhitespace<'_>,
+) -> Result<(), ErrorType<'a>> {
     let employee = split.next().ok_or_else(|| ErrorType::BadUsage(ADD_USAGE))?;
 
     split
@@ -31,25 +42,23 @@ fn handle_add(
         .filter(|x| (*x).eq("to"))
         .ok_or_else(|| ErrorType::BadUsage(ADD_USAGE))?;
 
-    let department = split
-        .next()
-        .ok_or_else(|| ErrorType::BadUsage(ADD_USAGE))?
-        .to_string();
+    let department = split.next().ok_or_else(|| ErrorType::BadUsage(ADD_USAGE))?;
 
-    if !split.next().is_none() {
-        return Err(ErrorType::BadUsage(ADD_USAGE));
-    }
+    ensure_split_finished(split, ADD_USAGE)?;
 
-    let deparment_employees = map.entry(department).or_insert_with(|| Vec::new());
+    let deparment_employees = map
+        .entry(String::from(department))
+        .or_insert_with(|| Vec::new());
+
     deparment_employees.push(String::from(employee));
 
     return Ok(());
 }
 
-fn handle_remove(
-    map: &mut HashMap<String, Vec<String>>,
-    split: &mut SplitWhitespace<'_>,
-) -> Result<(), ErrorType> {
+fn handle_remove<'a>(
+    map: &'a mut HashMap<String, Vec<String>>,
+    split: &'a mut SplitWhitespace<'_>,
+) -> Result<(), ErrorType<'a>> {
     let employee = split
         .next()
         .ok_or_else(|| ErrorType::BadUsage(REMOVE_USAGE))?;
@@ -63,20 +72,18 @@ fn handle_remove(
         .next()
         .ok_or_else(|| ErrorType::BadUsage(REMOVE_USAGE))?;
 
-    if !split.next().is_none() {
-        return Err(ErrorType::BadUsage(ADD_USAGE));
-    }
+    ensure_split_finished(split, REMOVE_USAGE)?;
 
     let deparment_employees = map
         .get_mut(department)
-        .ok_or_else(|| ErrorType::DepartmentNotFound(department.to_string()))?;
+        .ok_or_else(|| ErrorType::DepartmentNotFound(department))?;
 
     let (index, _) = deparment_employees
         .iter()
         .filter(|x| (*x).eq(employee))
         .enumerate()
         .next()
-        .ok_or_else(|| ErrorType::EmployeeNotFound(department.to_string(), employee.to_string()))?;
+        .ok_or_else(|| ErrorType::EmployeeNotFound(department, employee))?;
 
     if deparment_employees.len() == 1 {
         map.remove(department);
@@ -87,21 +94,19 @@ fn handle_remove(
     return Ok(());
 }
 
-fn handle_print(
-    map: &mut HashMap<String, Vec<String>>,
-    split: &mut SplitWhitespace<'_>,
-) -> Result<(), ErrorType> {
+fn handle_print<'a>(
+    map: &'a mut HashMap<String, Vec<String>>,
+    split: &'a mut SplitWhitespace<'_>,
+) -> Result<(), ErrorType<'a>> {
     let department = split
         .next()
         .ok_or_else(|| ErrorType::BadUsage(PRINT_USAGE))?;
 
-    if !split.next().is_none() {
-        return Err(ErrorType::BadUsage(ADD_USAGE));
-    }
+    ensure_split_finished(split, PRINT_USAGE)?;
 
     let employees = map
         .get_mut(department)
-        .ok_or_else(|| ErrorType::DepartmentNotFound(department.to_string()))?;
+        .ok_or_else(|| ErrorType::DepartmentNotFound(department))?;
 
     employees.sort_unstable();
     println!("{department} employees: {employees:?}");
@@ -109,13 +114,11 @@ fn handle_print(
     return Ok(());
 }
 
-fn handle_printall(
-    map: &mut HashMap<String, Vec<String>>,
-    split: &mut SplitWhitespace<'_>,
-) -> Result<(), ErrorType> {
-    if !split.next().is_none() {
-        return Err(ErrorType::BadUsage(PRINTALL_USAGE));
-    }
+fn handle_printall<'a>(
+    map: &'a mut HashMap<String, Vec<String>>,
+    split: &'a mut SplitWhitespace<'_>,
+) -> Result<(), ErrorType<'a>> {
+    ensure_split_finished(split, PRINTALL_USAGE)?;
 
     let mut all = Vec::new();
     for (department, employees) in map {
@@ -152,7 +155,7 @@ fn main() {
             Ok(line) => {
                 let mut split = line.split_whitespace();
                 let result = match split.next() {
-                    None => continue, //"Error: no command specified!",
+                    None => continue,
                     Some(command) => match command {
                         "Add" => handle_add(&mut map, &mut split),
                         "Remove" => handle_remove(&mut map, &mut split),
@@ -163,7 +166,7 @@ fn main() {
                             Ok(())
                         }
                         "Exit" => break,
-                        other => Err(ErrorType::UnknownCommand(String::from(other))), // println!("Unknown command: {other}"),
+                        other => Err(ErrorType::UnknownCommand(other)),
                     },
                 };
 
@@ -187,5 +190,6 @@ fn main() {
             }
         }
     }
+
     println!("Goodbye!");
 }
