@@ -7,14 +7,19 @@ pub struct Config {
     pub ignore_case: bool,
 }
 
-impl Config {
-    pub fn build(args: &[String]) -> Result<Config, &'static str> {
-        if args.len() != 3 {
-            return Err("Incorrect usage! Must specify two arguments: <query> <file_path>");
-        }
+const INVALID_USAGE: &str = "Incorrect usage! Must specify two arguments: <query> <file_path>";
 
-        let query = args[1].clone();
-        let file_path = args[2].clone();
+impl Config {
+    pub fn build(mut args: impl Iterator<Item = String>) -> Result<Config, &'static str> {
+        // If we wanted to assign args[1] to the `query` variable and args[2] to the `file_path variable`,
+        // we'd have to use `.clone()`, as we can't take ownership of the String away from the args array:
+        // (`args` used to be a `&[String]`)
+        // let query = args[1].clone();
+        // let file_path = args[2].clone();
+
+        // However, we can instead use an iterator that returns ownership of these strings!
+        let query = args.nth(1).ok_or(INVALID_USAGE)?;
+        let file_path = args.next().ok_or(INVALID_USAGE)?;
 
         let ignore_case = env::var("IGNORE_CASE").is_ok();
 
@@ -44,7 +49,9 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 }
 
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut result = Vec::new();
+    return contents.lines().filter(|line| line.contains(query)).collect();
+
+    /*let mut result = Vec::new();
 
     for line in contents.lines() {
         if line.contains(query) {
@@ -52,7 +59,7 @@ pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
         }
     }
 
-    return result;
+    return result;*/
 }
 
 pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {

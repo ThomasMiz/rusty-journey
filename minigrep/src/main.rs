@@ -5,8 +5,8 @@ use minigrep::Config;
 fn main() {
     // Note: `env::args()` panics if any of the arguments contains invalid unicode. If you need
     // to accept args with invalid unicode use `std::env::args_os` instead.
-    let args: Vec<String> = env::args().collect();
-    let config_result = Config::build(&args);
+    let args = env::args();
+    let config_result = Config::build(args);
 
     let config = config_result.unwrap_or_else(|err| {
         // Note the usage of `eprintln!` instead of `println!` to print to stderr
