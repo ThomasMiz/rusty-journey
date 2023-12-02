@@ -24,35 +24,35 @@ fn ensure_split_finished<'a>(
     split: &'a mut SplitWhitespace<'_>,
     message: &'a str,
 ) -> Result<(), ErrorType<'a>> {
-    if !split.next().is_none() {
+    if split.next().is_some() {
         return Err(ErrorType::BadUsage(message));
     }
 
-    return Ok(());
+    Ok(())
 }
 
 fn handle_add<'a>(
     map: &'a mut HashMap<String, Vec<String>>,
     split: &'a mut SplitWhitespace<'_>,
 ) -> Result<(), ErrorType<'a>> {
-    let employee = split.next().ok_or_else(|| ErrorType::BadUsage(ADD_USAGE))?;
+    let employee = split.next().ok_or(ErrorType::BadUsage(ADD_USAGE))?;
 
     split
         .next()
         .filter(|x| (*x).eq("to"))
-        .ok_or_else(|| ErrorType::BadUsage(ADD_USAGE))?;
+        .ok_or(ErrorType::BadUsage(ADD_USAGE))?;
 
-    let department = split.next().ok_or_else(|| ErrorType::BadUsage(ADD_USAGE))?;
+    let department = split.next().ok_or(ErrorType::BadUsage(ADD_USAGE))?;
 
     ensure_split_finished(split, ADD_USAGE)?;
 
     let deparment_employees = map
         .entry(String::from(department))
-        .or_insert_with(|| Vec::new());
+        .or_default();
 
     deparment_employees.push(String::from(employee));
 
-    return Ok(());
+    Ok(())
 }
 
 fn handle_remove<'a>(
@@ -61,29 +61,29 @@ fn handle_remove<'a>(
 ) -> Result<(), ErrorType<'a>> {
     let employee = split
         .next()
-        .ok_or_else(|| ErrorType::BadUsage(REMOVE_USAGE))?;
+        .ok_or(ErrorType::BadUsage(REMOVE_USAGE))?;
 
     split
         .next()
         .filter(|x| (*x).eq("from"))
-        .ok_or_else(|| ErrorType::BadUsage(REMOVE_USAGE))?;
+        .ok_or(ErrorType::BadUsage(REMOVE_USAGE))?;
 
     let department = split
         .next()
-        .ok_or_else(|| ErrorType::BadUsage(REMOVE_USAGE))?;
+        .ok_or(ErrorType::BadUsage(REMOVE_USAGE))?;
 
     ensure_split_finished(split, REMOVE_USAGE)?;
 
     let deparment_employees = map
         .get_mut(department)
-        .ok_or_else(|| ErrorType::DepartmentNotFound(department))?;
+        .ok_or(ErrorType::DepartmentNotFound(department))?;
 
     let (index, _) = deparment_employees
         .iter()
         .filter(|x| (*x).eq(employee))
         .enumerate()
         .next()
-        .ok_or_else(|| ErrorType::EmployeeNotFound(department, employee))?;
+        .ok_or(ErrorType::EmployeeNotFound(department, employee))?;
 
     if deparment_employees.len() == 1 {
         map.remove(department);
@@ -91,7 +91,7 @@ fn handle_remove<'a>(
         deparment_employees.swap_remove(index);
     }
 
-    return Ok(());
+    Ok(())
 }
 
 fn handle_print<'a>(
@@ -100,18 +100,18 @@ fn handle_print<'a>(
 ) -> Result<(), ErrorType<'a>> {
     let department = split
         .next()
-        .ok_or_else(|| ErrorType::BadUsage(PRINT_USAGE))?;
+        .ok_or(ErrorType::BadUsage(PRINT_USAGE))?;
 
     ensure_split_finished(split, PRINT_USAGE)?;
 
     let employees = map
         .get_mut(department)
-        .ok_or_else(|| ErrorType::DepartmentNotFound(department))?;
+        .ok_or(ErrorType::DepartmentNotFound(department))?;
 
     employees.sort_unstable();
     println!("{department} employees: {employees:?}");
 
-    return Ok(());
+    Ok(())
 }
 
 fn handle_printall<'a>(
@@ -134,7 +134,7 @@ fn handle_printall<'a>(
     }
     println!("That's all of 'em!");
 
-    return Ok(());
+    Ok(())
 }
 
 fn main() {
